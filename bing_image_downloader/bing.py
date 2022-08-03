@@ -1,4 +1,6 @@
 from pathlib import Path
+import os
+import sys
 import urllib.request
 import urllib
 import imghdr
@@ -12,12 +14,12 @@ Author: Guru Prasad (g.gaurav541@gmail.com)
 
 
 class Bing:
-    def __init__(self, query, limit, output_dir, adult, timeout,  filter='', verbose=True):
+    def __init__(self, query, limit, output_dir, adult, timeout, filters='', verbose=True):
         self.download_count = 0
         self.query = query
         self.output_dir = output_dir
         self.adult = adult
-        self.filter = filter
+        self.filters = filters
         self.verbose = verbose
         self.seen = set()
 
@@ -27,16 +29,16 @@ class Bing:
         self.timeout = timeout
 
         # self.headers = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
-        self.page_counter = 0
-        self.headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) ' 
-      'AppleWebKit/537.11 (KHTML, like Gecko) '
-      'Chrome/23.0.1271.64 Safari/537.11',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-      'Accept-Encoding': 'none',
-      'Accept-Language': 'en-US,en;q=0.8',
-      'Connection': 'keep-alive'}
+        self.headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
+        'AppleWebKit/537.11 (KHTML, like Gecko) '
+        'Chrome/23.0.1271.64 Safari/537.11',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+        'Accept-Encoding': 'none',
+        'Accept-Language': 'en-US,en;q=0.8',
+        'Connection': 'keep-alive'}
 
+        self.page_counter = 0
 
     def get_filter(self, shorthand):
             if shorthand == "line" or shorthand == "linedrawing":
@@ -62,7 +64,7 @@ class Bing:
         with open(str(file_path), 'wb') as f:
             f.write(image)
 
-    
+
     def download_image(self, link):
         self.download_count += 1
         # Get the image link
@@ -72,13 +74,14 @@ class Bing:
             file_type = filename.split(".")[-1]
             if file_type.lower() not in ["jpe", "jpeg", "jfif", "exif", "tiff", "gif", "bmp", "png", "webp", "jpg"]:
                 file_type = "jpg"
-                
+
             if self.verbose:
                 # Download the image
                 print("[%] Downloading Image #{} from {}".format(self.download_count, link))
-                
+
             self.save_image(link, self.output_dir.joinpath("Image_{}.{}".format(
                 str(self.download_count), file_type)))
+
             if self.verbose:
                 print("[%] File Downloaded !\n")
 
@@ -86,7 +89,7 @@ class Bing:
             self.download_count -= 1
             print("[!] Issue getting: {}\n[!] Error:: {}".format(link, e))
 
-    
+
     def run(self):
         while self.download_count < self.limit:
             if self.verbose:
@@ -94,7 +97,7 @@ class Bing:
             # Parse the page source and download pics
             request_url = 'https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(self.query) \
                           + '&first=' + str(self.page_counter) + '&count=' + str(self.limit) \
-                          + '&adlt=' + self.adult + '&qft=' + ('' if self.filter is None else self.get_filter(self.filter))
+                          + '&adlt=' + self.adult + '&qft=' + ('' if self.filter is None else self.get_filter(self.filters))
             request = urllib.request.Request(request_url, None, headers=self.headers)
             response = urllib.request.urlopen(request)
             html = response.read().decode('utf8')
@@ -110,6 +113,11 @@ class Bing:
                 if self.download_count < self.limit and link not in self.seen:
                     self.seen.add(link)
                     self.download_image(link)
+                else:
+                    print("\n\n[%] Done. Downloaded {} images.".format(self.download_count))
+                    print("\n===============================================\n")
+                    break
 
             self.page_counter += 1
         print("\n\n[%] Done. Downloaded {} images.".format(self.download_count))
+
